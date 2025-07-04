@@ -1,0 +1,336 @@
+<html>
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+</head>
+<body style="overflow: hidden;">
+    <style>/* Chatbox styling */
+        #chat_container {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          width: 350px;
+          max-width: 90%;
+          background-color: #111;
+          color: white;
+          border-radius: 10px;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+          overflow: hidden;
+          display: none;
+          flex-direction: column;
+        }
+        
+        #chat_header {
+          background: #222;
+          padding: 10px;
+          text-align: center;
+          font-size: 16px;
+          font-weight: bold;
+          cursor: pointer;
+        }
+        
+        #chat_box {
+          height: 300px;
+          overflow-y: auto;
+          padding: 10px;
+          font-size: 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+        }
+        
+        #chat_input {
+          display: flex;
+          border-top: 1px solid #444;
+        }
+        
+        #user_input {
+          flex: 1;
+          padding: 10px;
+          border: none;
+          outline: none;
+          background: #222;
+          color: white;
+          font-size: 14px;
+        }
+        
+        #send_btn {
+          background: #007BFF;
+          color: white;
+          border: none;
+          padding: 10px 15px;
+          cursor: pointer;
+        }
+        
+        #toggle_chat {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          background: #007BFF;
+          color: white;
+          border: none;
+          padding: 10px 15px;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 18px;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Smooth fade-in effect */
+        #chat_container.show {
+          display: flex;
+          animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        /* Updated Chatbox styling */
+        #chat_header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #222;
+        padding: 10px 15px;
+        font-size: 16px;
+        cursor: pointer;
+        }
+
+        #close_chat {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        line-height: 1;
+        padding: 0 5px;
+        cursor: pointer;
+        transition: color 0.3s;
+        }
+
+        #close_chat:hover {
+        color: #ff4444;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        </style>
+
+    <div class="container pt-4" style="height: 100vh; max-width: 100%; margin: 0 2% 0 2%;">
+        <div class="row" style="width:100%;">
+            <div class="col-lg-8 justify-content-center" style="height: 60vh; margin-top: 3%;">
+                <div style="text-align: center;">
+                    <img id="video-feed" src="{{ url_for('video_feed') }}" width="50%" style="border:5px double black;">
+                </div>
+                <hr style="margin: 3% auto 1% auto;" width="72%"/>
+                <div style="padding: 1% 0 0 5%">
+                    <p style="font-size: 1.1rem;">Performing pose:</p>
+                    <p style="font-size: 1.6rem;"> <b>{{ pose }}</b> </p>
+                </div>
+            </div>
+            <div class="col-lg-4" style="margin-top: 4%;">
+                <p style="text-align: center;">Pose reference: </p>
+                <div class="mb-3 mx-auto" style="height: 280px; width: 280px; overflow: hidden; display: flex;">
+                    <img id="yogaImage" src="" alt="" style="height: 100%; width: 100%; object-fit: contain;">
+                </div>
+                <hr style="margin: 8% auto 0 auto;" width="50%"/>
+                <div style="padding-top:5%;">
+                    <p style="font-size: 1.2rem; text-align: center;">Status: </p><p id="poseStatus" style="color:red; font-size: 1rem; text-align: center;">Incomplete Pose, please keep trying</p>
+                </div>
+                <hr style="margin: 8% auto 0 auto;" width="50%"/>
+                <div style="padding-top: 8%; text-align: center; max-width: 100%">
+                    <button type="button" id='startButton' class="btn btn-outline-dark btn-lg px-3 py-1 md-2 fw-bold" onclick="start()">Start</button>
+                    <button type="button" id='getHeatmap' class="btn btn-outline-dark btn-lg px-3 py-1 md-2 fw-bold" onclick="getHeatmap()">Get heatMap</button>
+                </div>
+                
+
+            </div>
+        </div>
+    </div>
+        <button id="toggle_chat">💬</button>
+        <div id="chat_container">
+        <div id="chat_header" onclick="toggleChat()">Chat with AI ✨</div>
+        <div id="chat_box"></div>
+        <div id="chat_input">
+        <input type="text" id="user_input" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+        <button id="send_btn" onclick="sendMessage()">➤</button>
+        </div>
+    </div>
+</body>
+
+<script>
+var socket;
+var timerId;
+var start;
+var end;
+
+function start() {
+    
+    // Call the function to start the socket
+    startSocket();
+    
+    // Call the function to start the timer
+    // startTimer();
+    
+    //to change the start text in the button
+    var buttonElement = document.getElementById('startButton');
+    console.log(buttonElement)
+    // Change the text content
+    buttonElement.textContent = 'Started';
+}
+
+function startSocket() {
+    socket = io.connect();
+    socket.on('connect', function() {
+    start = new Date().getTime();
+        console.log("connected");
+    });
+
+    socket.on('complete', function() {
+        var poseStatus = document.getElementById('poseStatus');
+        poseStatus.innerHTML = "Pose Complete"
+        poseStatus.style.color = "green";
+        end = new Date().getTime();
+        var time = end - start;
+        console.log(time);
+        // Stop the timer when the 'complete' event is triggered
+        if (Math.round(time/1000) < 45)
+        {
+            var ele = document.getElementById('poseStatus')
+            ele.style.color = "red";
+            ele.innerText = "You took "+ Math.round(time/1000)+" sec";
+        }
+        else{
+            document.getElementById('poseStatus').innerText = "pose comepleted on time";
+        }
+        clearTimeout(timerId);
+
+    });
+}
+
+function getHeatmap() {
+    socket.emit('heatmap')
+    
+}
+
+// function startTimer() {
+//     // Set the timer for 5 seconds (5000 milliseconds)
+//     timerId = setTimeout(function() {
+//         console.log("Timer expired. Updating element...");
+//         socket.disconnect();
+//         document.getElementById('poseStatus').innerText = 'Timer ran out.';
+//     }, 5000);
+// }
+    
+</script>
+
+<script>
+    var imageFolderPath = 'static/poseImages/';
+    var placeholderImagePath = 'static/poseImages/notfound.jpg';
+    var selectedPose = "{{ pose }}";
+    var imagePathPng = imageFolderPath + selectedPose + '.png';
+    var imagePathJpg = imageFolderPath + selectedPose + '.jpg';
+
+    // Check if the .png file exists, if not, try with .jpg
+    fetch(imagePathPng)
+      .then(response => {
+          if (response.ok) {
+              yogaImage.src = imagePathPng;
+          } else {
+              tryJpg();
+          }
+      })
+      .catch(() => {
+          // If there's an error, try with .jpg
+          tryJpg();
+      });
+
+    // Function to try loading the image with .jpg extension
+    function tryJpg() {
+      fetch(imagePathJpg)
+          .then(response => {
+              if (response.ok) {
+                  yogaImage.src = imagePathJpg;
+              } else {
+                  // If both .png and .jpg fail, set the placeholder image
+                  yogaImage.src = placeholderImagePath;
+              }
+          })
+          .catch(() => {
+              // If there's an error with .jpg, set the placeholder image
+              yogaImage.src = placeholderImagePath;
+          });
+    }
+
+
+    // Handle page unload
+    window.addEventListener('unload', function () {
+        // Close the webcam by sending a beacon request to the server
+        navigator.sendBeacon('/close_webcam');
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+
+<!-- Move scripts to the bottom -->
+<!-- If your JS is in a separate file -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var socket = io();
+
+        socket.on('connect', function () {
+            console.log("✅ Connected to WebSocket server");
+        });
+
+        socket.on('connect_error', function (error) {
+            console.error("❌ WebSocket connection failed!", error);
+        });
+
+        socket.on('receive_message', function (data) {
+            console.log("📩 Message received:", data);
+            var chatBox = document.getElementById("chat_box");
+            chatBox.innerHTML += `<p><strong>Bot:</strong> ${data.message}</p>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+
+        function sendMessage() {
+            var userMessage = document.getElementById("user_input").value.trim();
+            if (userMessage === "") return;
+
+            console.log("📤 Sending message:", userMessage);
+            socket.emit('send_message', { message: userMessage });
+
+            var chatBox = document.getElementById("chat_box");
+            chatBox.innerHTML += `<p><strong>You:</strong> ${userMessage}</p>`;
+            document.getElementById("user_input").value = "";
+
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === "Enter") sendMessage();
+        }
+
+        function closeChat() {
+        document.getElementById('chat_container').classList.remove('show');
+        event.stopPropagation(); // Prevent triggering the header's click event
+        }
+
+        function toggleChat() {
+        const chat = document.getElementById('chat_container');
+        chat.classList.toggle('show');
+        }
+
+    // Update event listener for the header
+    document.getElementById('chat_header').addEventListener('click', toggleChat);
+
+        document.getElementById("toggle_chat").addEventListener("click", function () {
+            document.getElementById("chat_container").classList.toggle("show");
+        });
+
+        document.getElementById("user_input").addEventListener("keypress", handleKeyPress);
+    });
+</script>
+
+
+
+</html>

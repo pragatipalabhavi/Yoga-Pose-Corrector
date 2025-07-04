@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>YogaPose Something</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <link href="{{ url_for('static', filename='/css/index.css') }}" rel="stylesheet">
+</head>
+<body class="h-100 text-center text-bg-dark">
+  <style>
+    /* Chatbox styling */
+    #chat_container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 350px;
+      max-width: 90%;
+      background-color: #111;
+      color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+      display: none;
+      flex-direction: column;
+    }
+    
+    #chat_header {
+      background: #222;
+      padding: 10px;
+      text-align: center;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    #chat_box {
+      height: 300px;
+      overflow-y: auto;
+      padding: 10px;
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    
+    #chat_input {
+      display: flex;
+      border-top: 1px solid #444;
+    }
+    
+    #user_input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      outline: none;
+      background: #222;
+      color: white;
+      font-size: 14px;
+    }
+    
+    #send_btn {
+      background: #007BFF;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+    }
+    
+    #toggle_chat {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #007BFF;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Smooth fade-in effect */
+    #chat_container.show {
+      display: flex;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+
+
+<nav class="navbar">
+  <div class="center-container" style="justify-content:center;">
+    <a href="/">
+      <img src="{{ url_for('static', filename='/img/logo.png') }}" style="height:20vh; filter: brightness(1.5);">
+    </a>
+  </div>
+</nav>
+<div class="container mid-section rounded-4 border shadow-lg">
+    <div id="firstDiv" class="row p-4 mb-0 pe-lg-0 pt-lg-5 align-items-center fade-transition">
+      <div class="col-lg-7 p-3 p-lg-3 pt-lg-3">
+        <!-- Content for the first div -->
+        <h1 class="display-4 fw-bold lh-1 fs-1" style="padding-bottom: 15px;">YOGA POSE ANALYSIS</h1>
+        <p class="lead" style="padding-bottom: 15px;">No comfort is greatest in words, but decoration is not in balance.</p>
+        <div class="d-grid gap-2 d-md-flex justify-content-md-center mb-4 mb-lg-3">
+          <button type="button" class="btn btn-outline-light btn-lg px-4 me-md-2 fw-bold" onclick="firstToggle()">Get Started</button>
+        </div>
+      </div>
+      <div class="col-lg-4 offset-lg-1 p-0 overflow-hidden shadow-lg">
+        <img src="{{ url_for('static', filename='/img/carousel_sub1.png') }}" style="height: 50vh; filter: invert(1);">
+      </div>
+    </div>
+
+    <div id="secondDiv" class="p-4 mb-0 pe-lg-0 pt-lg-5 align-items-center fade-transition hidden">
+      <div class="row py-3 mt-1 justify-content-center">
+        <img src="{{ url_for('static', filename='/img/webcam.png') }}" style="height:20vh; width: 12vw; filter: invert(1);">
+      </div>
+      <div class="row mt-4 justify-content-center">
+        <p class="lead" style="padding-bottom: 15px;">Before proceeding, make sure nothing is obstructing your webcam.</p>
+      </div>
+      <div class="row mt-4 justify-content-center">
+        <button type="button" class="btn btn-outline-light btn-lg px-4 me-md-2 fw-bold" onclick="secondToggle()" style="width:140px;">Proceed</button>
+      </div>
+    </div>
+<div id="thirdDiv" class="p-4 mb-0 pe-lg-0 pt-lg-4 align-items-center fade-transition hidden">
+    <div class="row justify-content-center"><!-- Center align the columns -->
+        <!-- First Column -->
+        <div class="col-md-6 text-center pt-4"><!-- Center align the content -->
+            <!-- First Row - Select Option -->
+            <div class="mb-3 text-center">
+              <div class="d-flex justify-content-center">
+                  <label for="yogaSelect" class="form-label">Choose a Yoga Pose: </label>
+              </div>
+              <div class="d-flex pt-3 justify-content-center">
+                  <select id="yogaSelect" class="form-select" style="width: 250px;">
+                      <option class="hidden_option" selected disabled>Choose an option</option>
+                  </select>
+              </div>
+          </div>
+
+
+            <hr><!-- Horizontal line -->
+            <!-- Second Row - Display Selected Pose -->
+            <div class="mb-3 pt-3">
+                <label for="selectedPose" class="form-label">Selected Yoga Pose: </label>
+                <p id="selectedPose">-</p>
+            </div>
+            <hr><!-- Horizontal line -->
+            <!-- Third Row - Display Details from JSON -->
+            <div class="mb-3 pt-3">
+                <label for="yogaDetails" class="form-label">Details: </label>
+                <p id="yogaDetails">-</p>
+            </div>
+        </div>
+
+        <!-- Second Column -->
+        <div class="col-md-6 text-center"><!-- Center align the content -->
+            <!-- Yoga Pose Image -->
+            <div class="mb-3 mx-auto" style="height: 280px; width: 280px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                <img id="yogaImage" src="{{ url_for('static', filename='/img/transparentImage.png') }}" alt="" style="height: 100%; width: 100%; object-fit: contain;">
+            </div>
+            <hr><!-- Horizontal line -->
+            <!-- Button below the image -->
+            <div>
+                <button type="button" class="btn btn-outline-light btn-lg px-4 me-md-2 fw-bold" onclick="performSelectedPose()">Perform</button>
+            </div>
+            <div id="chat-container" style="display: none;">
+              <div id="messages"></div>
+              <input type="text" id="messageInput" placeholder="Type a message..." />
+              <button onclick="sendMessage()">Send</button>
+          </div>
+      
+          <script>
+              const socket = io();
+              function toggleChat() {
+                  const chat = document.getElementById('chat-container');
+                  chat.style.display = chat.style.display === 'none' ? 'block' : 'none';
+              }
+      
+              function sendMessage() {
+                  const input = document.getElementById("messageInput");
+                  socket.emit("send_message", { message: input.value });
+                  input.value = "";
+              }
+      
+              socket.on("receive_message", function(data) {
+                  const msgDiv = document.getElementById("messages");
+                  msgDiv.innerHTML += `<p>${data.message}</p>`;
+              });
+            </script>
+            </div>            
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+  </div>
+
+<script>
+  function firstToggle() {
+    var firstDiv = document.getElementById('firstDiv');
+    var secondDiv = document.getElementById('secondDiv');
+
+    firstDiv.style.opacity = 0;
+
+    setTimeout(function () {
+      firstDiv.style.display = 'none';
+
+      // Fade in secondDiv and set display to block
+      secondDiv.style.opacity = 1;
+      secondDiv.style.display = 'block';
+    }, 500); // Adjust the delay to match your transition duration
+  }
+
+  function secondToggle() {
+    var secondDiv = document.getElementById('secondDiv');
+    var thirdDiv = document.getElementById('thirdDiv');
+
+    // Fade out secondDiv and set display to none
+    secondDiv.style.opacity = 0;
+
+    // Hide secondDiv after a short delay to allow the fade-out transition
+    setTimeout(function () {
+      secondDiv.style.display = 'none';
+
+      // Fade in thirdDiv and set display to block
+      thirdDiv.style.opacity = 1;
+      thirdDiv.style.display = 'block';
+    }, 500); // Adjust the delay to match your transition duration
+  }
+</script>
+
+<script>
+  var selectElement = document.getElementById('yogaSelect');
+  var poseName = document.getElementById('selectedPose');
+  var detailsParagraph = document.getElementById('yogaDetails');
+  var yogaImage = document.getElementById('yogaImage');
+
+  // Declare data outside the fetch callback
+  var data;
+  var imageFolderPath = 'static/poseImages/';
+  var placeholderImagePath = 'static/poseImages/notfound.jpg';
+
+  // Fetch JSON data from the external file
+  fetch("{{ json_url }}")
+      .then(response => response.json())
+      .then(jsonData => {
+          data = jsonData; // Assign the fetched data to the outer variable
+          // Populate the options dynamically
+          for (var poseName in data) {
+              var option = document.createElement('option');
+              option.value = poseName;
+              option.textContent = poseName;
+              selectElement.appendChild(option);
+          }
+      })
+      .catch(error => console.error('Error fetching JSON:', error));
+
+  // Add an event listener to update details when an option is selected
+  selectElement.addEventListener('change', function () {
+      var selectedPose = selectElement.value;
+      updateDetails(selectedPose);
+  });
+
+  // Function to update details based on the selected option
+  function updateDetails(selectedPose) {
+      poseName.textContent = selectedPose + " - " + data[selectedPose][0] || 'Details not available.';
+      detailsParagraph.textContent = data[selectedPose][1] || 'Details not available.';
+
+      var imagePathPng = imageFolderPath + selectedPose + '.png';
+      var imagePathJpg = imageFolderPath + selectedPose + '.jpg';
+
+      // Check if the .png file exists, if not, try with .jpg
+      fetch(imagePathPng)
+          .then(response => {
+              if (response.ok) {
+                  yogaImage.src = imagePathPng;
+              } else {
+                  tryJpg();
+              }
+          })
+          .catch(() => {
+              // If there's an error, try with .jpg
+              tryJpg();
+          });
+
+      // Function to try loading the image with .jpg extension
+      function tryJpg() {
+          fetch(imagePathJpg)
+              .then(response => {
+                  if (response.ok) {
+                      yogaImage.src = imagePathJpg;
+                  } else {
+                      // If both .png and .jpg fail, set the placeholder image
+                      yogaImage.src = placeholderImagePath;
+                  }
+              })
+              .catch(() => {
+                  // If there's an error with .jpg, set the placeholder image
+                  yogaImage.src = placeholderImagePath;
+              });
+      }
+  }
+</script>
+<script>
+  async function sendMessage() {
+      let userMessage = document.getElementById("userInput").value;
+      let chatBox = document.getElementById("chatBox");
+
+      chatBox.innerHTML += `<p><strong>You:</strong> ${userMessage}</p>`;
+
+      let response = await fetch("http://127.0.0.1:5000/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: userMessage })
+      });
+
+      let data = await response.json();
+      chatBox.innerHTML += `<p><strong>Bot:</strong> ${data.reply}</p>`;
+  }
+</script>
+<script>
+function performSelectedPose() {
+    var selectedPose = document.getElementById('yogaSelect').value;
+
+    // Make a POST request to the backend with the selected pose data
+    fetch('/perform', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'selected_pose=' + encodeURIComponent(selectedPose),
+    })
+    .then(response => {
+        if (response.ok) {
+            // Redirect to another page if the request was successful
+            window.location.href = '/yoga';
+        } else {
+            console.error('Failed to perform action');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+</script>
+
+<button id="toggle_chat">💬</button>
+    <div id="chat_container">
+        <div id="chat_header" onclick="toggleChat()">Chat with AI ✨</div>
+        <div id="chat_box"></div>
+        <div id="chat_input">
+            <input type="text" id="user_input" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+            <button id="send_btn" onclick="sendMessage()">➤</button>
+        </div>
+    </div>
+
+</body>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+      window.sendMessage = async function() {
+          var userMessage = document.getElementById("user_input").value.trim();
+          if (!userMessage) return;
+
+          document.getElementById("chat_box").innerHTML += `<p><strong>You:</strong> ${userMessage}</p>`;
+          document.getElementById("user_input").value = "";
+          document.getElementById("chat_box").scrollTop = document.getElementById("chat_box").scrollHeight;
+
+          try {
+              let response = await fetch("/send_message", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ message: userMessage })
+              });
+
+              let data = await response.json();
+              document.getElementById("chat_box").innerHTML += `<p><strong>Bot:</strong> ${data.message}</p>`;
+              document.getElementById("chat_box").scrollTop = document.getElementById("chat_box").scrollHeight;
+          } catch (error) {
+              console.error("❌ Failed to send message:", error);
+          }
+      };
+
+      window.handleKeyPress = function(event) {
+          if (event.key === "Enter") sendMessage();
+      };
+
+      document.getElementById("toggle_chat").addEventListener("click", function () {
+          document.getElementById("chat_container").classList.toggle("show");
+      });
+  });
+</script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+</html>
